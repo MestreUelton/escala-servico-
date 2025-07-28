@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escala de Serviço Mensal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin: 20px 0;
+        }
+        .day-header {
+            background: #007bff;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .day {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .day:hover {
+            background: #f0f0f0;
+        }
+        .day.selected {
+            background: #007bff;
+            color: white;
+        }
+        .day.empty {
+            background: #f9f9f9;
+            cursor: default;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.success:hover {
+            background: #218838;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .message {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Escala de Serviço Mensal</h1>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nome">Nome Completo:</label>
+                <input type="text" id="nome" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="graduacao">Graduação:</label>
+                <select id="graduacao" required>
+                    <option value="">Selecione...</option>
+                    <option value="SD">SD</option>
+                    <option value="CB">CB</option>
+                    <option value="SGT">SGT</option>
+                    <option value="ST">ST</option>
+                    <option value="TEN">TEN</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="rg">RG:</label>
+                <input type="text" id="rg" placeholder="Digite seu RG" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="mes">Mês:</label>
+                <select id="mes">
+                    <option value="0">Janeiro</option>
+                    <option value="1">Fevereiro</option>
+                    <option value="2">Março</option>
+                    <option value="3">Abril</option>
+                    <option value="4">Maio</option>
+                    <option value="5">Junho</option>
+                    <option value="6">Julho</option>
+                    <option value="7">Agosto</option>
+                    <option value="8">Setembro</option>
+                    <option value="9">Outubro</option>
+                    <option value="10">Novembro</option>
+                    <option value="11">Dezembro</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="ano">Ano:</label>
+                <input type="number" id="ano" min="2023" max="2100" value="2024">
+            </div>
+        </div>
+        
+        <div class="calendar" id="calendar"></div>
+        
+        <div class="buttons">
+            <button onclick="gerarEscala()">Gerar Escala</button>
+            <button class="secondary" onclick="limparSelecao()">Limpar Seleção</button>
+            <button class="success" onclick="enviarEscala()">Enviar por E-mail</button>
+        </div>
+        
+        <div id="loading" class="loading">Enviando dados, por favor aguarde...</div>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mesSelect = document.getElementById('mes');
+            const anoInput = document.getElementById('ano');
+            
+            mesSelect.addEventListener('change', atualizarCalendario);
+            anoInput.addEventListener('change', atualizarCalendario);
+            
+            atualizarCalendario();
+        });
+
+        function atualizarCalendario() {
+            const mes = parseInt(document.getElementById('mes').value);
+            const ano = parseInt(document.getElementById('ano').value);
+            const calendar = document.getElementById('calendar');
+            
+            calendar.innerHTML = '';
+            
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            diasSemana.forEach(dia => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'day-header';
+                dayHeader.textContent = dia;
+                calendar.appendChild(dayHeader);
+            });
+            
+            const primeiroDia = new Date(ano, mes, 1).getDay();
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            
+            for (let i = 0; i < primeiroDia; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'day empty';
+                calendar.appendChild(emptyDay);
+            }
+            
+            for (let dia = 1; dia <= ultimoDia; dia++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'day';
+                dayElement.textContent = dia;
+                
+                dayElement.addEventListener('click', function() {
+                    this.classList.toggle('selected');
+                });
+                
+                calendar.appendChild(dayElement);
+            }
+        }
+
+        function limparSelecao() {
+            document.querySelectorAll('.day.selected').forEach(day => {
+                day.classList.remove('selected');
+            });
+        }
+
+        function getFormData() {
+            return {
+                nome: document.getElementById('nome').value,
+                graduacao: document.getElementById('graduacao').value,
+                rg: document.getElementById('rg').value,
+                mes: document.getElementById('mes').options[document.getElementById('mes').selectedIndex].text,
+                ano: document.getElementById('ano').value,
+                diasSelecionados: Array.from(document.querySelectorAll('.day.selected')).map(day => parseInt(day.textContent))
+            };
+        }
+
+        function validateForm() {
+            const { nome, graduacao, rg, diasSelecionados } = getFormData();
+            return nome && graduacao && rg && diasSelecionados.length > 0;
+        }
+
+        function gerarEscala() {
+            if (!validateForm()) {
+                alert('Preencha todos os campos obrigatórios e selecione pelo menos um dia!');
+                return;
+            }
+            
+            const { nome, graduacao, rg, mes, ano, diasSelecionados } = getFormData();
+            gerarDocumentoEscala(nome, graduacao, rg, mes, ano, diasSelecionados);
+        }
+
+        function gerarDocumentoEscala(nome, graduacao, rg, mes, ano, diasSelecionados) {
+            const novaJanela = window.open('', '_blank');
+            const dataAtual = new Date().toLocaleDateString();
+            
+            novaJanela.document.write(`
+                <!DOCTYPE html>
+                <html lang="pt-br">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Escala de ${nome}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                            line-height: 1.6;
+                        }
+                        .container {
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 20px;
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            background: #f9f9f9;
+                        }
+                        h1 {
+                            text-align: center;
+                            color: #007bff;
+                        }
+                        .info {
+                            margin-bottom: 20px;
+                        }
+                        .info p {
+                            margin: 5px 0;
+                        }
+                        .dias-selecionados {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 10px;
+                            margin: 15px 0;
+                        }
+                        .dia {
+                            background: #007bff;
+                            color: white;
+                            padding: 8px 12px;
+                            border-radius: 4px;
+                            font-weight: bold;
+                        }
+                        .btn-group {
+                            display: flex;
+                            gap: 10px;
+                            justify-content: center;
+                            margin-top: 20px;
+                        }
+                        .btn {
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 16px;
+                            text-decoration: none;
+                            color: white;
+                            text-align: center;
+                        }
+                        .print-btn {
+                            background: #28a745;
+                        }
+                        .print-btn:hover {
+                            background: #218838;
+                        }
+                        .email-btn {
+                            background: #dc3545;
+                        }
+                        .email-btn:hover {
+                            background: #c82333;
+                        }
+                        .footer {
+                            margin-top: 20px;
+                            font-size: 0.9em;
+                            color: #666;
+                            text-align: right;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>Escala de Serviço</h1>
+                        <div class="info">
+                            <p><strong>Nome:</strong> ${nome}</p>
+                            <p><strong>Graduação:</strong> ${graduacao}</p>
+                            <p><strong>RG:</strong> ${rg}</p>
+                            <p><strong>Mês/Ano:</strong> ${mes}/${ano}</p>
+                            <p><strong>Dias Selecionados:</strong></p>
+                            <div class="dias-selecionados">
+                                ${diasSelecionados.map(dia => `<span class="dia">${dia}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="footer">
+                            Documento gerado em: ${dataAtual}
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn print-btn" onclick="window.print()">Imprimir Escala</button>
+                            <a href="mailto:ueltonfabricius@hotmail.com.br?subject=Escala de ${nome} - ${mes}/${ano}&body=Olá,%0D%0A%0D%0ASegue minha escala:%0D%0A%0D%0ANome: ${nome}%0D%0AGraduação: ${graduacao}%0D%0ARG: ${rg}%0D%0AMês/Ano: ${mes}/${ano}%0D%0ADias selecionados: ${diasSelecionados.join(', ')}%0D%0A%0D%0AAtenciosamente," class="btn email-btn">Enviar por E-mail</a>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            novaJanela.document.close();
+        }
+
+        async function enviarEscala() {
+            if (!validateForm()) {
+                alert('Preencha todos os campos obrigatórios e selecione pelo menos um dia!');
+                return;
+            }
+            
+            const { nome, graduacao, rg, mes, ano, diasSelecionados } = getFormData();
+            
+            const loading = document.getElementById('loading');
+            const message = document.getElementById('message');
+            
+            loading.style.display = 'block';
+            message.style.display = 'none';
+            
+            try {
+                // Substitua esta URL pela URL do seu backend
+                const response = await fetch('http://localhost:3000/enviar-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        graduacao,
+                        rg,
+                        mes,
+                        ano,
+                        diasSelecionados,
+                        destinatario: 'ueltonfabricius@hotmail.com.br'
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    message.textContent = 'Escala enviada com sucesso para ueltonfabricius@hotmail.com.br!';
+                    message.className = 'message success';
+                } else {
+                    throw new Error(result.message || 'Erro ao enviar e-mail');
+                }
+            } catch (error) {
+                message.textContent = `Erro: ${error.message}`;
+                message.className = 'message error';
+            } finally {
+                loading.style.display = 'none';
+                message.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

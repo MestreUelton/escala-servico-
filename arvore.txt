@@ -1,0 +1,5 @@
+📂 escala-servico/
+├── 📄 index.html          (Frontend completo)
+├── 📄 server.js           (Backend Node.js)
+├── 📄 .env                (Configurações de e-mail)
+└── 📄 package.json        (Dependências)
