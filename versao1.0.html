@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escala de Serviço Mensal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; }
+        .form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; min-width: 200px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 20px 0; }
+        .day-header { background: #007bff; color: white; text-align: center; padding: 10px; font-weight: bold; }
+        .day { border: 1px solid #ddd; padding: 10px; text-align: center; cursor: pointer; transition: background 0.3s; }
+        .day:hover { background: #f0f0f0; }
+        .day.selected { background: #007bff; color: white; }
+        .day.empty { background: #f9f9f9; cursor: default; }
+        .buttons { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        button.secondary { background: #6c757d; }
+        button.secondary:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Escala de Serviço Mensal</h1>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" required>
+            </div>
+            <div class="form-group">
+                <label for="graduacao">Graduação:</label>
+                <select id="graduacao" required>
+                    <option value="">Selecione...</option>
+                    <option value="SD">SD</option>
+                    <option value="CB">CB</option>
+                    <option value="SGT">SGT</option>
+                    <option value="ST">ST</option>
+                    <option value="TEN">TEN</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="rg">RG:</label>
+                <input type="text" id="rg" required>
+            </div>
+            <div class="form-group">
+                <label for="mes">Mês:</label>
+                <select id="mes">
+                    <option value="0">Janeiro</option>
+                    <option value="1">Fevereiro</option>
+                    <option value="2">Março</option>
+                    <option value="3">Abril</option>
+                    <option value="4">Maio</option>
+                    <option value="5">Junho</option>
+                    <option value="6">Julho</option>
+                    <option value="7">Agosto</option>
+                    <option value="8">Setembro</option>
+                    <option value="9">Outubro</option>
+                    <option value="10">Novembro</option>
+                    <option value="11">Dezembro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ano">Ano:</label>
+                <input type="number" id="ano" min="2023" max="2100" value="2024">
+            </div>
+        </div>
+        
+        <div class="calendar" id="calendar"></div>
+        
+        <div class="buttons">
+            <button onclick="gerarEscala()">Gerar Escala</button>
+            <button class="secondary" onclick="limparSelecao()">Limpar Seleção</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mesSelect = document.getElementById('mes');
+            const anoInput = document.getElementById('ano');
+            
+            mesSelect.addEventListener('change', atualizarCalendario);
+            anoInput.addEventListener('change', atualizarCalendario);
+            
+            atualizarCalendario();
+        });
+
+        function atualizarCalendario() {
+            const mes = parseInt(document.getElementById('mes').value);
+            const ano = parseInt(document.getElementById('ano').value);
+            const calendar = document.getElementById('calendar');
+            
+            calendar.innerHTML = '';
+            
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            diasSemana.forEach(dia => {
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'day-header';
+                dayHeader.textContent = dia;
+                calendar.appendChild(dayHeader);
+            });
+            
+            const primeiroDia = new Date(ano, mes, 1).getDay();
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            
+            for (let i = 0; i < primeiroDia; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'day empty';
+                calendar.appendChild(emptyDay);
+            }
+            
+            for (let dia = 1; dia <= ultimoDia; dia++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'day';
+                dayElement.textContent = dia;
+                
+                dayElement.addEventListener('click', function() {
+                    this.classList.toggle('selected');
+                });
+                
+                calendar.appendChild(dayElement);
+            }
+        }
+
+        function limparSelecao() {
+            document.querySelectorAll('.day.selected').forEach(day => {
+                day.classList.remove('selected');
+            });
+        }
+function gerarEscala() {
+        const nome = document.getElementById('nome').value;
+        const graduacao = document.getElementById('graduacao').value;
+        const rg = document.getElementById('rg').value;
+        const mes = document.getElementById('mes').options[document.getElementById('mes').selectedIndex].text;
+        const ano = document.getElementById('ano').value;
+        const diasSelecionados = [];
+        
+        document.querySelectorAll('.day.selected').forEach(day => {
+            diasSelecionados.push(parseInt(day.textContent));
+        });
+        
+        if (!nome || !graduacao || !rg || diasSelecionados.length === 0) {
+            alert('Preencha todos os campos obrigatórios e selecione pelo menos um dia!');
+            return;
+        }
+        
+        const mailtoLink = `mailto:ueltonfabricius@hotmail.com.br?subject=Escala de ${nome}&body=Olá,%0D%0A%0D%0ASegue minha escala:%0D%0A%0D%0ANome: ${nome}%0D%0AGraduação: ${graduacao}%0D%0ARG: ${rg}%0D%0AMês/Ano: ${mes}/${ano}%0D%0ADias: ${diasSelecionados.join(', ')}%0D%0A%0D%0AAtenciosamente,`;
+        
+        window.location.href = mailtoLink;
+    }
+        function gerarEscala() {
+            const nome = document.getElementById('nome').value;
+            const graduacao = document.getElementById('graduacao').value;
+            const rg = document.getElementById('rg').value;
+            const mes = document.getElementById('mes').options[document.getElementById('mes').selectedIndex].text;
+            const ano = document.getElementById('ano').value;
+            const diasSelecionados = [];
+            
+            document.querySelectorAll('.day.selected').forEach(day => {
+                diasSelecionados.push(parseInt(day.textContent));
+            });
+            
+            if (!nome || !graduacao || !rg || diasSelecionados.length === 0) {
+                alert('Preencha todos os campos obrigatórios e selecione pelo menos um dia!');
+                return;
+            }
+            
+            const escala = {
+                nome,
+                graduacao,
+                rg,
+                mes,
+                ano,
+                diasSelecionados,
+                data: new Date().toLocaleString()
+            };
+            
+            console.log('Escala gerada:', escala);
+            alert(`Escala de ${nome} gerada com sucesso!\nDias: ${diasSelecionados.join(', ')}`);
+        }
+    </script>
+<div class="buttons" style="margin-top: 10px;">
+    <button style="background: #6f42c1;" onclick="consolidarEscalas()">Consolidar Escalas</button>
+</div>
+
+<script>
+    // Armazenamento local simulando banco de dados
+    let bancoDeDados = JSON.parse(localStorage.getItem('escalas')) || [];
+
+    function gerarEscala() {
+        // [Código anterior da função...]
+        
+        const escala = { nome, graduacao, rg, mes, ano, diasSelecionados };
+        bancoDeDados.push(escala);
+        localStorage.setItem('escalas', JSON.stringify(bancoDeDados));
+        
+        alert(`Escala de ${nome} salva! Total: ${bancoDeDados.length} escalas armazenadas.`);
+    }
+
+    function consolidarEscalas() {
+        if (bancoDeDados.length === 0) {
+            alert('Nenhuma escala para consolidar!');
+            return;
+        }
+        
+        // Agrupa por mês/ano
+        const consolidado = bancoDeDados.reduce((acc, escala) => {
+            const key = `${escala.mes}/${escala.ano}`;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(escala);
+            return acc;
+        }, {});
+        
+        // Prepara corpo do e-mail
+        let corpoEmail = "CONSOLIDAÇÃO DE ESCALAS\n\n";
+        
+        for (const [periodo, escalas] of Object.entries(consolidado)) {
+            corpoEmail += `=== ${periodo} ===\n`;
+            escalas.forEach(esc => {
+                corpoEmail += `${esc.nome} (${esc.graduacao}) - RG: ${esc.rg} - Dias: ${esc.diasSelecionados.join(', ')}\n`;
+            });
+            corpoEmail += "\n";
+        }
+        
+        // Envia por e-mail
+        const mailtoLink = `mailto:ueltonfabricius@hotmail.com.br?subject=Consolidação de Escalas&body=${encodeURIComponent(corpoEmail)}`;
+        window.location.href = mailtoLink;
+        
+        // Limpa o banco de dados após envio
+        bancoDeDados = [];
+        localStorage.removeItem('escalas');
+    }
+</body>
+</html>
