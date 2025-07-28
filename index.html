@@ -105,6 +105,12 @@
         button.consolidar:hover {
             background: #5a32a3;
         }
+        button.export-btn {
+            background: #28a745;
+        }
+        button.export-btn:hover {
+            background: #218838;
+        }
         .loading {
             display: none;
             text-align: center;
@@ -138,12 +144,6 @@
             margin-bottom: 10px;
             border-radius: 4px;
             border-left: 4px solid #007bff;
-        }
-        .export-btn {
-            background: #28a745;
-        }
-        .export-btn:hover {
-            background: #218838;
         }
     </style>
 </head>
@@ -196,24 +196,24 @@
             
             <div class="form-group">
                 <label for="ano">Ano:</label>
-                <input type="number" id="ano" min="2023" max="2100" value="2024">
+                <input type="number" id="ano" min="2023" max="2100" value="2025">
             </div>
         </div>
         
         <div class="calendar" id="calendar"></div>
         
         <div class="buttons">
-            <button onclick="gerarEscala()">Salvar Escala</button>
+            <button onclick="salvarEscala()">Salvar Escala</button>
             <button class="secondary" onclick="limparSelecao()">Limpar Seleção</button>
-            <button class="consolidar" onclick="consolidarEscalas()">Consolidar e Enviar</button>
-            <button class="export-btn" onclick="exportarParaExcel()">Exportar para Excel</button>
+            <button class="consolidar" onclick="consolidarEscalas()">Consolidar Escalas</button>
+            <button class="export-btn" onclick="exportarParaExcel()">Exportar Excel</button>
         </div>
         
-        <div id="loading" class="loading">Enviando dados, por favor aguarde...</div>
+        <div id="loading" class="loading">Processando, aguarde...</div>
         <div id="message" class="message"></div>
         
         <div id="escalasSalvas">
-            <h3>Escalas Salvas</h3>
+            <h3>Escalas Armazenadas</h3>
             <div id="listaEscalas"></div>
         </div>
     </div>
@@ -222,7 +222,7 @@
         // Banco de dados local
         let bancoEscalas = JSON.parse(localStorage.getItem('bancoEscalas')) || [];
         
-        // Atualiza o calendário ao carregar a página
+        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             const mesSelect = document.getElementById('mes');
             const anoInput = document.getElementById('ano');
@@ -234,7 +234,7 @@
             atualizarListaEscalas();
         });
 
-        // Função para atualizar o calendário
+        // Atualiza o calendário
         function atualizarCalendario() {
             const mes = parseInt(document.getElementById('mes').value);
             const ano = parseInt(document.getElementById('ano').value);
@@ -242,7 +242,7 @@
             
             calendar.innerHTML = '';
             
-            // Cabeçalhos dos dias da semana
+            // Dias da semana
             const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
             diasSemana.forEach(dia => {
                 const dayHeader = document.createElement('div');
@@ -251,11 +251,11 @@
                 calendar.appendChild(dayHeader);
             });
             
-            // Calcula o primeiro dia do mês e quantos dias tem o mês
+            // Dias do mês
             const primeiroDia = new Date(ano, mes, 1).getDay();
             const ultimoDia = new Date(ano, mes + 1, 0).getDate();
             
-            // Dias vazios no início do calendário
+            // Dias vazios no início
             for (let i = 0; i < primeiroDia; i++) {
                 const emptyDay = document.createElement('div');
                 emptyDay.className = 'day empty';
@@ -276,60 +276,24 @@
             }
         }
 
-        // Limpa a seleção de dias
+        // Limpa seleção de dias
         function limparSelecao() {
             document.querySelectorAll('.day.selected').forEach(day => {
                 day.classList.remove('selected');
             });
         }
 
-        // Salva a escala no banco de dados
-        function salvarEscala(escala) {
-            bancoEscalas.push(escala);
-            localStorage.setItem('bancoEscalas', JSON.stringify(bancoEscalas));
-            atualizarListaEscalas();
-        }
-
-        // Atualiza a lista de escalas salvas
-        function atualizarListaEscalas() {
-            const listaEscalas = document.getElementById('listaEscalas');
-            listaEscalas.innerHTML = '';
-            
-            if (bancoEscalas.length === 0) {
-                listaEscalas.innerHTML = '<p>Nenhuma escala salva ainda.</p>';
-                return;
-            }
-            
-            bancoEscalas.forEach((escala, index) => {
-                const escalaItem = document.createElement('div');
-                escalaItem.className = 'escala-item';
-                escalaItem.innerHTML = `
-                    <p><strong>${escala.nome}</strong> (${escala.graduacao}) - RG: ${escala.rg}</p>
-                    <p>${escala.mes}/${escala.ano} - Dias: ${escala.diasSelecionados.join(', ')}</p>
-                    <button onclick="removerEscala(${index})" style="padding: 2px 5px; font-size: 12px;">Remover</button>
-                `;
-                listaEscalas.appendChild(escalaItem);
-            });
-        }
-
-        // Remove uma escala específica
-        function removerEscala(index) {
-            bancoEscalas.splice(index, 1);
-            localStorage.setItem('bancoEscalas', JSON.stringify(bancoEscalas));
-            atualizarListaEscalas();
-        }
-
-        // Gera e salva uma nova escala
-        function gerarEscala() {
+        // Salva uma nova escala
+        function salvarEscala() {
             const nome = document.getElementById('nome').value;
             const graduacao = document.getElementById('graduacao').value;
             const rg = document.getElementById('rg').value;
             const mes = document.getElementById('mes').options[document.getElementById('mes').selectedIndex].text;
             const ano = document.getElementById('ano').value;
-            const diasSelecionados = Array.from(document.querySelectorAll('.day.selected')).map(day => parseInt(day.textContent));
+            const diasSelecionados = Array.from(document.querySelectorAll('.day.selected')).map(d => parseInt(d.textContent));
             
             if (!nome || !graduacao || !rg || diasSelecionados.length === 0) {
-                alert('Preencha todos os campos obrigatórios e selecione pelo menos um dia!');
+                mostrarMensagem('Preencha todos os campos e selecione os dias!', 'error');
                 return;
             }
             
@@ -340,82 +304,104 @@
                 mes,
                 ano,
                 diasSelecionados,
-                dataRegistro: new Date().toISOString()
+                timestamp: new Date().toISOString()
             };
             
-            salvarEscala(novaEscala);
-             function exportarParaExcel() {
+            bancoEscalas.push(novaEscala);
+            localStorage.setItem('bancoEscalas', JSON.stringify(bancoEscalas));
+            
+            mostrarMensagem(`Escala de ${nome} salva com sucesso!`, 'success');
+            atualizarListaEscalas();
+        }
+
+        // Atualiza a lista de escalas salvas
+        function atualizarListaEscalas() {
+            const listaEscalas = document.getElementById('listaEscalas');
+            listaEscalas.innerHTML = '';
+            
             if (bancoEscalas.length === 0) {
-                alert('Nenhuma escala para exportar!');
+                listaEscalas.innerHTML = '<p>Nenhuma escala armazenada.</p>';
                 return;
             }
-
-            // Cabeçalhos do CSV
-            let csvContent = "Nome,Graduação,RG,Mês/Ano,Dias Selecionados\n";
             
-            // Adiciona cada escala como uma linha no CSV
-            bancoEscalas.forEach(escala => {
-                const linha = [
-                    `"${escala.nome}"`,
-                    `"${escala.graduacao}"`,
-                    `"${escala.rg}"`,
-                    `"${escala.mes}/${escala.ano}"`,
-                    `"${escala.diasSelecionados.join(', ')}"`
-                ].join(',');
-                
-                csvContent += linha + '\n';
+            bancoEscalas.forEach((escala, index) => {
+                const item = document.createElement('div');
+                item.className = 'escala-item';
+                item.innerHTML = `
+                    <p><strong>${escala.nome}</strong> (${escala.graduacao}) - RG: ${escala.rg}</p>
+                    <p>${escala.mes}/${escala.ano} - Dias: ${escala.diasSelecionados.join(', ')}</p>
+                    <button onclick="removerEscala(${index})" style="padding: 2px 5px; font-size: 12px;">Remover</button>
+                `;
+                listaEscalas.appendChild(item);
             });
+        }
 
-            // Cria um blob com o conteúdo CSV
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
+        // Remove uma escala
+        function removerEscala(index) {
+            bancoEscalas.splice(index, 1);
+            localStorage.setItem('bancoEscalas', JSON.stringify(bancoEscalas));
+            atualizarListaEscalas();
+            mostrarMensagem('Escala removida!', 'success');
+        }
+
+        // Consolida as escalas
+        function consolidarEscalas() {
+            if (bancoEscalas.length === 0) {
+                mostrarMensagem('Nenhuma escala para consolidar!', 'error');
+                return;
+            }
             
-            // Cria um link para download
+            const formatoExcel = confirm('Deseja consolidar em formato Excel?\n\nClique em "OK" para Excel ou "Cancelar" para texto simples');
+            
+            if (formatoExcel) {
+                exportarParaExcel();
+            } else {
+                enviarPorEmail();
+            }
+        }
+
+        // Exporta para Excel
+        function exportarParaExcel() {
+            if (bancoEscalas.length === 0) {
+                mostrarMensagem('Nenhuma escala para exportar!', 'error');
+                return;
+            }
+            
+            // Cabeçalhos do CSV
+            let csv = "Nome,Graduação,RG,Mês/Ano,Dias Selecionados\n";
+            
+            // Adiciona cada escala
+            bancoEscalas.forEach(escala => {
+                csv += `"${escala.nome}","${escala.graduacao}","${escala.rg}","${escala.mes}/${escala.ano}","${escala.diasSelecionados.join(', ')}"\n`;
+            });
+            
+            // Cria e dispara o download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
             link.setAttribute('download', `escalas_${new Date().toISOString().slice(0,10)}.csv`);
             link.style.visibility = 'hidden';
-            
-            // Dispara o download
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }
-            const message = document.getElementById('message');
-            message.textContent = `Escala de ${nome} salva com sucesso!`;
-            message.className = 'message success';
-            message.style.display = 'block';
             
-            setTimeout(() => {
-                message.style.display = 'none';
-            }, 3000);
+            mostrarMensagem('Arquivo Excel gerado com sucesso!', 'success');
         }
 
-        // Consolida e envia todas as escalas por e-mail
-        function consolidarEscalas() {
-            if (bancoEscalas.length === 0) {
-                alert('Nenhuma escala para consolidar!');
-                return;
-            }
-            const formato = confirm('Deseja enviar as escalas por e-mail em formato Excel (CSV)?\n\nClique em "OK" para Excel ou "Cancelar" para texto simples');
-            
-            if (formato) {
-                // Se escolheu Excel, exporta diretamente
-                exportarParaExcel();
-            } else {
-            // Agrupa escalas por mês/ano
-            const consolidado = bancoEscalas.reduce((acc, escala) => {
-                const key = `${escala.mes}/${escala.ano}`;
-                if (!acc[key]) {
-                    acc[key] = [];
-                }
-                acc[key].push(escala);
-                return acc;
-            }, {});
-            
-            // Formata o corpo do e-mail
+        // Envia por e-mail
+        function enviarPorEmail() {
             let corpoEmail = "CONSOLIDAÇÃO DE ESCALAS\n\n";
+            const consolidado = {};
             
+            // Agrupa por mês/ano
+            bancoEscalas.forEach(escala => {
+                const key = `${escala.mes}/${escala.ano}`;
+                if (!consolidado[key]) consolidado[key] = [];
+                consolidado[key].push(escala);
+            });
+            
+            // Formata o texto
             for (const [periodo, escalas] of Object.entries(consolidado)) {
                 corpoEmail += `=== ${periodo} ===\n`;
                 escalas.forEach(esc => {
@@ -424,18 +410,20 @@
                 });
             }
             
-            corpoEmail += `\nTotal de escalas: ${bancoEscalas.length}\n`;
-            corpoEmail += `Gerado em: ${new Date().toLocaleString()}`;
-            
-            // Envia por e-mail
-            window.location.href = `mailto:ueltonfabricius@hotmail.com.br?subject=Consolidação de Escalas&body=${encodeURIComponent(corpoEmail)}`;
-            
-            // Opcional: Limpar após envio (descomente se quiser)
-            // bancoEscalas = [];
-            // localStorage.removeItem('bancoEscalas');
-            // atualizarListaEscalas();
+            window.location.href = `mailto:ueltonfabricius@hotmail.com.br?subject=Escalas Consolidadas&body=${encodeURIComponent(corpoEmail)}`;
         }
-        
+
+        // Mostra mensagens de status
+        function mostrarMensagem(texto, tipo) {
+            const message = document.getElementById('message');
+            message.textContent = texto;
+            message.className = `message ${tipo}`;
+            message.style.display = 'block';
+            
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
     </script>
 </body>
 </html>
