@@ -99,16 +99,10 @@
         button.secondary:hover {
             background: #5a6268;
         }
-        button.consolidar {
-            background: #6f42c1;
-        }
-        button.consolidar:hover {
-            background: #5a32a3;
-        }
-        button.export-btn {
+        button.email-btn {
             background: #28a745;
         }
-        button.export-btn:hover {
+        button.email-btn:hover {
             background: #218838;
         }
         .loading {
@@ -196,7 +190,7 @@
             
             <div class="form-group">
                 <label for="ano">Ano:</label>
-                <input type="number" id="ano" min="2023" max="2100" value="2025">
+                <input type="number" id="ano" min="2023" max="2100" value="2024">
             </div>
         </div>
         
@@ -205,11 +199,10 @@
         <div class="buttons">
             <button onclick="salvarEscala()">Salvar Escala</button>
             <button class="secondary" onclick="limparSelecao()">Limpar Seleção</button>
-            <button class="consolidar" onclick="consolidarEscalas()">Consolidar Escalas</button>
-            <button class="export-btn" onclick="exportarParaExcel()">Exportar Excel</button>
+            <button class="email-btn" onclick="enviarEscalaPorEmail()">Enviar Escala por E-mail</button>
         </div>
         
-        <div id="loading" class="loading">Processando, aguarde...</div>
+        <div id="loading" class="loading">Preparando arquivo, aguarde...</div>
         <div id="message" class="message"></div>
         
         <div id="escalasSalvas">
@@ -344,73 +337,58 @@
             mostrarMensagem('Escala removida!', 'success');
         }
 
-        // Consolida as escalas
-        function consolidarEscalas() {
+        // Envia a escala por e-mail como anexo CSV
+        function enviarEscalaPorEmail() {
             if (bancoEscalas.length === 0) {
-                mostrarMensagem('Nenhuma escala para consolidar!', 'error');
+                mostrarMensagem('Nenhuma escala para enviar!', 'error');
                 return;
             }
             
-            const formatoExcel = confirm('Deseja consolidar em formato Excel?\n\nClique em "OK" para Excel ou "Cancelar" para texto simples');
+            mostrarLoading(true);
             
-            if (formatoExcel) {
-                exportarParaExcel();
-            } else {
-                enviarPorEmail();
-            }
-        }
-
-        // Exporta para Excel
-        function exportarParaExcel() {
-            if (bancoEscalas.length === 0) {
-                mostrarMensagem('Nenhuma escala para exportar!', 'error');
-                return;
-            }
-            
-            // Cabeçalhos do CSV
-            let csv = "Nome,Graduação,RG,Mês/Ano,Dias Selecionados\n";
-            
-            // Adiciona cada escala
-            bancoEscalas.forEach(escala => {
-                csv += `"${escala.nome}","${escala.graduacao}","${escala.rg}","${escala.mes}/${escala.ano}","${escala.diasSelecionados.join(', ')}"\n`;
-            });
-            
-            // Cria e dispara o download
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `escalas_${new Date().toISOString().slice(0,10)}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            mostrarMensagem('Arquivo Excel gerado com sucesso!', 'success');
-        }
-
-        // Envia por e-mail
-        function enviarPorEmail() {
-            let corpoEmail = "CONSOLIDAÇÃO DE ESCALAS\n\n";
-            const consolidado = {};
-            
-            // Agrupa por mês/ano
-            bancoEscalas.forEach(escala => {
-                const key = `${escala.mes}/${escala.ano}`;
-                if (!consolidado[key]) consolidado[key] = [];
-                consolidado[key].push(escala);
-            });
-            
-            // Formata o texto
-            for (const [periodo, escalas] of Object.entries(consolidado)) {
-                corpoEmail += `=== ${periodo} ===\n`;
-                escalas.forEach(esc => {
-                    corpoEmail += `• ${esc.nome} (${esc.graduacao}) - RG: ${esc.rg}\n`;
-                    corpoEmail += `  Dias: ${esc.diasSelecionados.join(', ')}\n\n`;
+            try {
+                // Cria conteúdo CSV
+                let csvContent = "Nome,Graduação,RG,Mês/Ano,Dias Selecionados\n";
+                
+                bancoEscalas.forEach(escala => {
+                    csvContent += `"${escala.nome}","${escala.graduacao}","${escala.rg}","${escala.mes}/${escala.ano}","${escala.diasSelecionados.join(', ')}"\n`;
                 });
+                
+                // Cria blob para download
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                
+                // Prepara e-mail
+                const dataAtual = new Date().toLocaleDateString();
+                const assunto = `Escalas de Serviço - ${dataAtual}`;
+                const corpoEmail = `Prezado,\n\nSegue em anexo o arquivo com as escalas consolidadas.\nTotal de registros: ${bancoEscalas.length}\n\nAtenciosamente,\nSistema de Escalas`;
+                
+                // Cria link para download e e-mail
+                const linkDownload = document.createElement('a');
+                linkDownload.href = url;
+                linkDownload.download = `escalas_${dataAtual.replace(/\//g, '-')}.csv`;
+                document.body.appendChild(linkDownload);
+                
+                // Abre cliente de e-mail
+                window.location.href = `mailto:ueltonfabricius@hotmail.com.br?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`;
+                
+                // Dispara download após pequeno delay
+                setTimeout(() => {
+                    linkDownload.click();
+                    document.body.removeChild(linkDownload);
+                    mostrarMensagem('Arquivo CSV gerado e e-mail preparado!', 'success');
+                }, 500);
+                
+            } catch (error) {
+                mostrarMensagem('Erro ao enviar escala: ' + error.message, 'error');
+            } finally {
+                mostrarLoading(false);
             }
-            
-            window.location.href = `mailto:ueltonfabricius@hotmail.com.br?subject=Escalas Consolidadas&body=${encodeURIComponent(corpoEmail)}`;
+        }
+
+        // Mostra/oculta loading
+        function mostrarLoading(mostrar) {
+            document.getElementById('loading').style.display = mostrar ? 'block' : 'none';
         }
 
         // Mostra mensagens de status
@@ -422,7 +400,7 @@
             
             setTimeout(() => {
                 message.style.display = 'none';
-            }, 3000);
+            }, 5000);
         }
     </script>
 </body>
