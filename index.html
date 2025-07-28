@@ -139,6 +139,12 @@
             border-radius: 4px;
             border-left: 4px solid #007bff;
         }
+        .export-btn {
+            background: #28a745;
+        }
+        .export-btn:hover {
+            background: #218838;
+        }
     </style>
 </head>
 <body>
@@ -200,6 +206,7 @@
             <button onclick="gerarEscala()">Salvar Escala</button>
             <button class="secondary" onclick="limparSelecao()">Limpar Seleção</button>
             <button class="consolidar" onclick="consolidarEscalas()">Consolidar e Enviar</button>
+            <button class="export-btn" onclick="exportarParaExcel()">Exportar para Excel</button>
         </div>
         
         <div id="loading" class="loading">Enviando dados, por favor aguarde...</div>
@@ -337,7 +344,43 @@
             };
             
             salvarEscala(novaEscala);
+             function exportarParaExcel() {
+            if (bancoEscalas.length === 0) {
+                alert('Nenhuma escala para exportar!');
+                return;
+            }
+
+            // Cabeçalhos do CSV
+            let csvContent = "Nome,Graduação,RG,Mês/Ano,Dias Selecionados\n";
             
+            // Adiciona cada escala como uma linha no CSV
+            bancoEscalas.forEach(escala => {
+                const linha = [
+                    `"${escala.nome}"`,
+                    `"${escala.graduacao}"`,
+                    `"${escala.rg}"`,
+                    `"${escala.mes}/${escala.ano}"`,
+                    `"${escala.diasSelecionados.join(', ')}"`
+                ].join(',');
+                
+                csvContent += linha + '\n';
+            });
+
+            // Cria um blob com o conteúdo CSV
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            // Cria um link para download
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `escalas_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            
+            // Dispara o download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
             const message = document.getElementById('message');
             message.textContent = `Escala de ${nome} salva com sucesso!`;
             message.className = 'message success';
@@ -354,7 +397,12 @@
                 alert('Nenhuma escala para consolidar!');
                 return;
             }
+            const formato = confirm('Deseja enviar as escalas por e-mail em formato Excel (CSV)?\n\nClique em "OK" para Excel ou "Cancelar" para texto simples');
             
+            if (formato) {
+                // Se escolheu Excel, exporta diretamente
+                exportarParaExcel();
+            } else {
             // Agrupa escalas por mês/ano
             const consolidado = bancoEscalas.reduce((acc, escala) => {
                 const key = `${escala.mes}/${escala.ano}`;
@@ -387,6 +435,7 @@
             // localStorage.removeItem('bancoEscalas');
             // atualizarListaEscalas();
         }
+        
     </script>
 </body>
 </html>
